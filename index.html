@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Beast Platform Ultimate</title>
+<title>Beast Platform v16 Ultimate</title>
 <style>
 body{font-family:Arial;direction:rtl;margin:0;background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);color:white;}
 nav{background:black;padding:10px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;}
@@ -33,7 +33,7 @@ button{padding:8px 12px;border:none;border-radius:8px;cursor:pointer;margin-top:
 </nav>
 
 <section id="home" class="active">
-<h2>🔥 Beast Platform Ultimate 🔥</h2>
+<h2>🔥 Beast Platform v16 Ultimate 🔥</h2>
 <p>المحتوى مشترك عبر Google Sheet ويظهر لكل الأجهزة 👌</p>
 </section>
 
@@ -124,14 +124,12 @@ function addToSheet(sheet){
   fetch(SCRIPT_URL,{method:"POST",body:JSON.stringify(data)}).then(()=>{alert("تم الرفع ✨"); fetchSheet();});
 }
 
-// حذف عنصر
 function deleteFromSheet(sheet,row){
   if(!confirm("هل أنت متأكد أنك تريد حذف هذا العنصر؟")) return;
   fetch(SCRIPT_URL,{method:"POST",body:JSON.stringify({action:"delete",sheet:sheet,row:row})})
   .then(()=>{alert("تم الحذف ✅"); fetchSheet();});
 }
 
-// تحميل البيانات وعرضها
 function fetchSheet(){
   fetch("https://docs.google.com/spreadsheets/d/1ZWsFu2o4XdxGy5qVQ_YAGsONVn_3nczVFfOebJ8smlE/gviz/tq?tqx=out:json")
   .then(res=>res.text())
@@ -191,7 +189,6 @@ function fillListForTeacher(id,list,sheetName,isStudent=false){
 
 function fillMeet(list){let html="";list.forEach(i=>{html+=`<div class="card"><a href="${i.link}" target="_blank">${i.link}</a></div>`;});document.getElementById("studentMeet").innerHTML=html;}
 
-// دردشة مؤقتة لكل جهاز
 function saveStudentName(){localStorage.setItem("studentName",document.getElementById("studentNameInput").value);alert("تم حفظ الاسم 👍");}
 function sendMessage(){let msg=document.getElementById("chatMessage").value;document.getElementById("chatBox").innerHTML+=`<div class='card'><strong>${localStorage.getItem("studentName")} :</strong> ${msg}</div>`;document.getElementById("chatMessage").value="";}
 
