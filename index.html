@@ -10,11 +10,11 @@ nav{background:black;padding:10px;display:flex;flex-wrap:wrap;justify-content:ce
 nav button{flex:1 1 40%;max-width:48%;padding:10px;border:none;border-radius:10px;background:cyan;color:black;font-weight:bold;cursor:pointer;}
 section{display:none;padding:15px;}
 .active{display:block;}
-.card{background:white;color:black;padding:15px;margin:10px 0;border-radius:12px;}
+.card{background:white;color:black;padding:15px;margin:10px 0;border-radius:12px;position:relative;}
 input{width:100%;padding:8px;margin:5px 0;border-radius:8px;border:none;}
 button{padding:8px 12px;border:none;border-radius:8px;cursor:pointer;margin-top:5px;font-weight:bold;}
 .action{background:limegreen;}
-.delete{background:red;color:white;}
+.delete{background:red;color:white;margin-left:5px;}
 .openBtn{background:#203a43;color:white;}
 @media(min-width:768px){nav button{flex:none;max-width:none;}}
 </style>
@@ -94,48 +94,44 @@ button{padding:8px 12px;border:none;border-radius:8px;cursor:pointer;margin-top:
 </section>
 
 <script>
-
-// 🚀 ضع هنا رابط Web App بتاعك
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzW9PVYrxn8Mx_h8STSh1rhbu_Fi8Fv56Tp_Se5BU_DDt6vF6o1vWKFxEiYmNNiNIKc/exec";
-
 let isTeacher=false;
 
-// عرض صفحة معيّنة
 function show(id){
   document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
 
-// دخول المعلم
 function login(){
   if(document.getElementById("pass").value==="1234"){
       isTeacher=true;
       show("panel");
+      fetchSheet();
       document.getElementById("msg").innerText="";
   } else {
       document.getElementById("msg").innerText="❌ كلمة المرور خطأ";
   }
 }
 
-// إرسال البيانات للـ Google Sheet عبر Apps Script
 function addToSheet(sheet){
   let data;
-  if(sheet==="books") data={sheet:"books",row:[document.getElementById("bookTitle").value,document.getElementById("bookLink").value]};
-  if(sheet==="summaries") data={sheet:"summaries",row:[document.getElementById("sumTitle").value,document.getElementById("sumLink").value]};
-  if(sheet==="videos") data={sheet:"videos",row:[document.getElementById("vidTitle").value,document.getElementById("vidLink").value]};
-  if(sheet==="students") data={sheet:"students",row:[document.getElementById("studentName").value,document.getElementById("workTitle").value,document.getElementById("workLink").value]};
-  if(sheet==="meet") data={sheet:"meet",row:[document.getElementById("meetLink").value]};
+  if(sheet==="books") data={action:"add",sheet:"books",row:[document.getElementById("bookTitle").value,document.getElementById("bookLink").value]};
+  if(sheet==="summaries") data={action:"add",sheet:"summaries",row:[document.getElementById("sumTitle").value,document.getElementById("sumLink").value]};
+  if(sheet==="videos") data={action:"add",sheet:"videos",row:[document.getElementById("vidTitle").value,document.getElementById("vidLink").value]};
+  if(sheet==="students") data={action:"add",sheet:"students",row:[document.getElementById("studentName").value,document.getElementById("workTitle").value,document.getElementById("workLink").value]};
+  if(sheet==="meet") data={action:"add",sheet:"meet",row:[document.getElementById("meetLink").value]};
   
-  fetch(SCRIPT_URL,{
-    method:"POST",
-    body:JSON.stringify(data)
-  }).then(()=>{
-    alert("تم الرفع ✨");
-    fetchSheet(); // إعادة تحميل البيانات فورًا
-  });
+  fetch(SCRIPT_URL,{method:"POST",body:JSON.stringify(data)}).then(()=>{alert("تم الرفع ✨"); fetchSheet();});
 }
 
-// تحميل البيانات من Google Sheet
+// حذف عنصر
+function deleteFromSheet(sheet,row){
+  if(!confirm("هل أنت متأكد أنك تريد حذف هذا العنصر؟")) return;
+  fetch(SCRIPT_URL,{method:"POST",body:JSON.stringify({action:"delete",sheet:sheet,row:row})})
+  .then(()=>{alert("تم الحذف ✅"); fetchSheet();});
+}
+
+// تحميل البيانات وعرضها
 function fetchSheet(){
   fetch("https://docs.google.com/spreadsheets/d/1ZWsFu2o4XdxGy5qVQ_YAGsONVn_3nczVFfOebJ8smlE/gviz/tq?tqx=out:json")
   .then(res=>res.text())
@@ -145,23 +141,13 @@ function fetchSheet(){
   });
 }
 
-// عرض البيانات
 function displayData(rows){
   let books=[],summaries=[],videos=[],students=[],meets=[];
-  
   rows.forEach(r=>{
     const c=r.c;
-    if(c.length==2){
-      books.push({title:c[0]?.v,link:c[1]?.v});
-      summaries.push({title:c[0]?.v,link:c[1]?.v});
-      videos.push({title:c[0]?.v,link:c[1]?.v});
-    }
-    if(c.length==3){
-      students.push({student:c[0]?.v,title:c[1]?.v,link:c[2]?.v});
-    }
-    if(c.length==1){
-      meets.push({link:c[0]?.v});
-    }
+    if(c.length==2){books.push({title:c[0]?.v,link:c[1]?.v}); summaries.push({title:c[0]?.v,link:c[1]?.v}); videos.push({title:c[0]?.v,link:c[1]?.v});}
+    if(c.length==3){students.push({student:c[0]?.v,title:c[1]?.v,link:c[2]?.v});}
+    if(c.length==1){meets.push({link:c[0]?.v});}
   });
 
   fillList("bookList",books);
@@ -169,32 +155,47 @@ function displayData(rows){
   fillList("videoList",videos);
   fillList("studentList",students,true);
   fillMeet(meets);
+
+  if(isTeacher){
+    fillListForTeacher("bookList",books,"books");
+    fillListForTeacher("summaryList",summaries,"summaries");
+    fillListForTeacher("videoList",videos,"videos");
+    fillListForTeacher("studentList",students,"students",true);
+  }
 }
 
 function fillList(id,list,isStudent=false){
   let html="";
   list.forEach(item=>{
+    if(isStudent){html+=`<div class="card"><h3>${item.student}</h3><p>${item.title}</p><button class="openBtn" onclick="window.open('${item.link}','_blank')">فتح العمل</button></div>`;}
+    else{html+=`<div class="card"><h3>${item.title}</h3><button class="openBtn" onclick="window.open('${item.link}','_blank')">فتح الملف</button></div>`;}
+  });
+  document.getElementById(id).innerHTML=html;
+}
+
+function fillListForTeacher(id,list,sheetName,isStudent=false){
+  let html="";
+  list.forEach(item=>{
     if(isStudent){
-      html+=`<div class="card"><h3>${item.student}</h3><p>${item.title}</p><button class="openBtn" onclick="window.open('${item.link}','_blank')">فتح العمل</button></div>`;
+      html+=`<div class="card"><h3>${item.student}</h3><p>${item.title}</p>
+      <button class="openBtn" onclick="window.open('${item.link}','_blank')">فتح العمل</button>
+      <button class="delete" onclick="deleteFromSheet('${sheetName}', ['${item.student}','${item.title}','${item.link}'])">حذف</button></div>`;
     } else {
-      html+=`<div class="card"><h3>${item.title}</h3><button class="openBtn" onclick="window.open('${item.link}','_blank')">فتح الملف</button></div>`;
+      html+=`<div class="card"><h3>${item.title}</h3>
+      <button class="openBtn" onclick="window.open('${item.link}','_blank')">فتح الملف</button>
+      <button class="delete" onclick="deleteFromSheet('${sheetName}', ['${item.title}','${item.link}'])">حذف</button></div>`;
     }
   });
   document.getElementById(id).innerHTML=html;
 }
 
-function fillMeet(list){
-  let html="";
-  list.forEach(i=>{html+=`<div class="card"><a href="${i.link}" target="_blank">${i.link}</a></div>`;});
-  document.getElementById("studentMeet").innerHTML=html;
-}
+function fillMeet(list){let html="";list.forEach(i=>{html+=`<div class="card"><a href="${i.link}" target="_blank">${i.link}</a></div>`;});document.getElementById("studentMeet").innerHTML=html;}
 
 // دردشة مؤقتة لكل جهاز
 function saveStudentName(){localStorage.setItem("studentName",document.getElementById("studentNameInput").value);alert("تم حفظ الاسم 👍");}
 function sendMessage(){let msg=document.getElementById("chatMessage").value;document.getElementById("chatBox").innerHTML+=`<div class='card'><strong>${localStorage.getItem("studentName")} :</strong> ${msg}</div>`;document.getElementById("chatMessage").value="";}
 
-fetchSheet(); // تحميل أولي
-
+fetchSheet();
 </script>
 </body>
 </html>
