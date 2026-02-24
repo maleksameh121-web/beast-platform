@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Beast Platform V16 GitHub</title>
+<title>Beast Platform Ultimate</title>
 <style>
 body{font-family:Arial;direction:rtl;margin:0;background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);color:white;}
 nav{background:black;padding:10px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;}
@@ -14,6 +14,7 @@ section{display:none;padding:15px;}
 input{width:100%;padding:8px;margin:5px 0;border-radius:8px;border:none;}
 button{padding:8px 12px;border:none;border-radius:8px;cursor:pointer;margin-top:5px;font-weight:bold;}
 .action{background:limegreen;}
+.delete{background:red;color:white;}
 .openBtn{background:#203a43;color:white;}
 @media(min-width:768px){nav button{flex:none;max-width:none;}}
 </style>
@@ -26,13 +27,14 @@ button{padding:8px 12px;border:none;border-radius:8px;cursor:pointer;margin-top:
 <button onclick="show('summaries')">📝 الملخصات</button>
 <button onclick="show('videos')">🎥 الفيديوهات</button>
 <button onclick="show('students')">👨‍🎓 أعمال الطلاب</button>
-<button onclick="show('meet')">🎥 الاجتماع</button>
-<button onclick="show('login')">👑 دخول المعلم</button>
+<button onclick="show('meetPage')">🎥 الاجتماع</button>
+<button onclick="show('chatPage')">💬 الدردشة</button>
+<button onclick="show('login')">دخول المعلم</button>
 </nav>
 
 <section id="home" class="active">
-<h2>🔥 Beast Platform V16 GitHub Edition 🔥</h2>
-<p>المنصة شغالة أونلاين عبر GitHub Pages</p>
+<h2>🔥 Beast Platform Ultimate 🔥</h2>
+<p>المحتوى مشترك عبر Google Sheet ويظهر لكل الأجهزة 👌</p>
 </section>
 
 <section id="books"><h2>📚 الكتب</h2><div id="bookList"></div></section>
@@ -40,7 +42,18 @@ button{padding:8px 12px;border:none;border-radius:8px;cursor:pointer;margin-top:
 <section id="videos"><h2>🎥 الفيديوهات</h2><div id="videoList"></div></section>
 <section id="students"><h2>👨‍🎓 أعمال الطلاب</h2><div id="studentList"></div></section>
 
-<section id="meet"><h2>🎥 الاجتماع</h2><div id="meetLink"></div></section>
+<section id="meetPage"><h2>🎥 الرابط المباشر للاجتماع</h2><div id="studentMeet"></div></section>
+
+<section id="chatPage">
+<h2>💬 الدردشة</h2>
+<div style="margin-bottom:10px;">
+<input type="text" id="studentNameInput" placeholder="اكتب اسمك">
+<button onclick="saveStudentName()">حفظ الاسم</button>
+</div>
+<div id="chatBox" style="height:300px;overflow:auto;border:1px solid #ccc;margin-bottom:10px;padding:10px;"></div>
+<input type="text" id="chatMessage" placeholder="اكتب رسالة">
+<button onclick="sendMessage()">إرسال</button>
+</section>
 
 <section id="login">
 <h2>🔐 دخول المعلم</h2>
@@ -51,60 +64,137 @@ button{padding:8px 12px;border:none;border-radius:8px;cursor:pointer;margin-top:
 
 <section id="panel">
 <h2>👑 لوحة المعلم</h2>
-<p>⚠️ لإضافة محتوى عدّل ملف data.json في GitHub</p>
-<button onclick="show('home')" style="background:red;color:white;">خروج</button>
+
+<h3>📚 إضافة كتاب</h3>
+<input type="text" id="bookTitle" placeholder="اسم الكتاب">
+<input type="text" id="bookLink" placeholder="رابط Google Drive">
+<button class="action" onclick="addToSheet('books')">حفظ الكتاب</button>
+
+<h3>📝 إضافة ملخص</h3>
+<input type="text" id="sumTitle" placeholder="اسم الملخص">
+<input type="text" id="sumLink" placeholder="رابط Google Drive">
+<button class="action" onclick="addToSheet('summaries')">حفظ الملخص</button>
+
+<h3>🎥 إضافة فيديو</h3>
+<input type="text" id="vidTitle" placeholder="اسم الفيديو">
+<input type="text" id="vidLink" placeholder="رابط Google Drive للفيديو">
+<button class="action" onclick="addToSheet('videos')">حفظ الفيديو</button>
+
+<h3>👨‍🎓 إضافة عمل طالب</h3>
+<input type="text" id="studentName" placeholder="اسم الطالب">
+<input type="text" id="workTitle" placeholder="عنوان العمل">
+<input type="text" id="workLink" placeholder="رابط Google Drive للعمل">
+<button class="action" onclick="addToSheet('students')">حفظ العمل</button>
+
+<h3>📌 روابط الاجتماعات</h3>
+<input type="text" id="meetLink" placeholder="رابط الاجتماع">
+<button class="action" onclick="addToSheet('meet')">حفظ الرابط</button>
+
+<button onclick="show('home')" class="delete">خروج</button>
 </section>
 
 <script>
 
-const DATA_URL = "data.json";
+// 🚀 ضع هنا رابط Web App بتاعك
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzW9PVYrxn8Mx_h8STSh1rhbu_Fi8Fv56Tp_Se5BU_DDt6vF6o1vWKFxEiYmNNiNIKc/exec";
 
+let isTeacher=false;
+
+// عرض صفحة معيّنة
 function show(id){
-document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
-document.getElementById(id).classList.add("active");
+  document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
 }
 
+// دخول المعلم
 function login(){
-if(document.getElementById("pass").value==="1234"){
-show("panel");
-document.getElementById("msg").innerText="";
-}else{
-document.getElementById("msg").innerText="❌ كلمة المرور خطأ";
-}
-}
-
-fetch(DATA_URL)
-.then(res=>res.json())
-.then(data=>{
-
-data.books.forEach(b=>{
-document.getElementById("bookList").innerHTML+=
-`<div class="card"><h3>${b.title}</h3><button class="openBtn" onclick="window.open('${b.link}')">فتح</button></div>`;
-});
-
-data.summaries.forEach(s=>{
-document.getElementById("summaryList").innerHTML+=
-`<div class="card"><h3>${s.title}</h3><button class="openBtn" onclick="window.open('${s.link}')">فتح</button></div>`;
-});
-
-data.videos.forEach(v=>{
-document.getElementById("videoList").innerHTML+=
-`<div class="card"><h3>${v.title}</h3><button class="openBtn" onclick="window.open('${v.link}')">مشاهدة</button></div>`;
-});
-
-data.students.forEach(st=>{
-document.getElementById("studentList").innerHTML+=
-`<div class="card"><h3>${st.student}</h3><p>${st.title}</p><button class="openBtn" onclick="window.open('${st.link}')">فتح</button></div>`;
-});
-
-if(data.meet){
-document.getElementById("meetLink").innerHTML=
-`<div class="card"><a href="${data.meet}" target="_blank">🎥 دخول الاجتماع</a></div>`;
+  if(document.getElementById("pass").value==="1234"){
+      isTeacher=true;
+      show("panel");
+      document.getElementById("msg").innerText="";
+  } else {
+      document.getElementById("msg").innerText="❌ كلمة المرور خطأ";
+  }
 }
 
-});
+// إرسال البيانات للـ Google Sheet عبر Apps Script
+function addToSheet(sheet){
+  let data;
+  if(sheet==="books") data={sheet:"books",row:[document.getElementById("bookTitle").value,document.getElementById("bookLink").value]};
+  if(sheet==="summaries") data={sheet:"summaries",row:[document.getElementById("sumTitle").value,document.getElementById("sumLink").value]};
+  if(sheet==="videos") data={sheet:"videos",row:[document.getElementById("vidTitle").value,document.getElementById("vidLink").value]};
+  if(sheet==="students") data={sheet:"students",row:[document.getElementById("studentName").value,document.getElementById("workTitle").value,document.getElementById("workLink").value]};
+  if(sheet==="meet") data={sheet:"meet",row:[document.getElementById("meetLink").value]};
+  
+  fetch(SCRIPT_URL,{
+    method:"POST",
+    body:JSON.stringify(data)
+  }).then(()=>{
+    alert("تم الرفع ✨");
+    fetchSheet(); // إعادة تحميل البيانات فورًا
+  });
+}
+
+// تحميل البيانات من Google Sheet
+function fetchSheet(){
+  fetch("https://docs.google.com/spreadsheets/d/1ZWsFu2o4XdxGy5qVQ_YAGsONVn_3nczVFfOebJ8smlE/gviz/tq?tqx=out:json")
+  .then(res=>res.text())
+  .then(txt=>{
+    const json = JSON.parse(txt.substring(47).slice(0,-2));
+    displayData(json.table.rows);
+  });
+}
+
+// عرض البيانات
+function displayData(rows){
+  let books=[],summaries=[],videos=[],students=[],meets=[];
+  
+  rows.forEach(r=>{
+    const c=r.c;
+    if(c.length==2){
+      books.push({title:c[0]?.v,link:c[1]?.v});
+      summaries.push({title:c[0]?.v,link:c[1]?.v});
+      videos.push({title:c[0]?.v,link:c[1]?.v});
+    }
+    if(c.length==3){
+      students.push({student:c[0]?.v,title:c[1]?.v,link:c[2]?.v});
+    }
+    if(c.length==1){
+      meets.push({link:c[0]?.v});
+    }
+  });
+
+  fillList("bookList",books);
+  fillList("summaryList",summaries);
+  fillList("videoList",videos);
+  fillList("studentList",students,true);
+  fillMeet(meets);
+}
+
+function fillList(id,list,isStudent=false){
+  let html="";
+  list.forEach(item=>{
+    if(isStudent){
+      html+=`<div class="card"><h3>${item.student}</h3><p>${item.title}</p><button class="openBtn" onclick="window.open('${item.link}','_blank')">فتح العمل</button></div>`;
+    } else {
+      html+=`<div class="card"><h3>${item.title}</h3><button class="openBtn" onclick="window.open('${item.link}','_blank')">فتح الملف</button></div>`;
+    }
+  });
+  document.getElementById(id).innerHTML=html;
+}
+
+function fillMeet(list){
+  let html="";
+  list.forEach(i=>{html+=`<div class="card"><a href="${i.link}" target="_blank">${i.link}</a></div>`;});
+  document.getElementById("studentMeet").innerHTML=html;
+}
+
+// دردشة مؤقتة لكل جهاز
+function saveStudentName(){localStorage.setItem("studentName",document.getElementById("studentNameInput").value);alert("تم حفظ الاسم 👍");}
+function sendMessage(){let msg=document.getElementById("chatMessage").value;document.getElementById("chatBox").innerHTML+=`<div class='card'><strong>${localStorage.getItem("studentName")} :</strong> ${msg}</div>`;document.getElementById("chatMessage").value="";}
+
+fetchSheet(); // تحميل أولي
 
 </script>
-
 </body>
 </html>
